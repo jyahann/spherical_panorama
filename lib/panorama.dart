@@ -1,11 +1,10 @@
 library spherical_panorama;
 
 import 'dart:async';
-import 'dart:math';
 import 'dart:ui' as ui;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:sensors_plus/sensors_plus.dart';
+import 'package:motion_sensors/motion_sensors.dart';
 import 'package:spherical_panorama/cube/mesh.dart';
 import 'package:spherical_panorama/cube/scene.dart';
 import 'package:spherical_panorama/cube/cube.dart';
@@ -302,43 +301,27 @@ class _PanoramaState extends State<Panorama>
 
   void _updateSensorControl() {
     _orientationSubscription?.cancel();
-
     switch (widget.sensorControl) {
       case SensorControl.Orientation:
-        _orientationSubscription = accelerometerEventStream(
-          samplingPeriod: Duration(
-            microseconds: Duration.microsecondsPerSecond ~/ 60,
-          ),
-        ).listen(
-          (AccelerometerEvent event) {
-            orientation.setValues(event.x, event.y, event.z);
-          },
-        );
+        motionSensors.orientationUpdateInterval = Duration.microsecondsPerSecond ~/ 60;
+        _orientationSubscription = motionSensors.orientation.listen((OrientationEvent event) {
+          orientation.setValues(event.yaw, event.pitch, event.roll);
+        });
         break;
       case SensorControl.AbsoluteOrientation:
-        _orientationSubscription = userAccelerometerEventStream(
-          samplingPeriod: Duration(
-            microseconds: Duration.microsecondsPerSecond ~/ 60,
-          ),
-        ).listen(
-          (UserAccelerometerEvent event) {
-            orientation.setValues(event.x, event.y, event.z);
-          },
-        );
+        motionSensors.absoluteOrientationUpdateInterval = Duration.microsecondsPerSecond ~/ 60;
+        _orientationSubscription = motionSensors.absoluteOrientation.listen((AbsoluteOrientationEvent event) {
+          orientation.setValues(event.yaw, event.pitch, event.roll);
+        });
         break;
       default:
     }
 
     _screenOrientSubscription?.cancel();
-
     if (widget.sensorControl != SensorControl.None) {
-      _orientationSubscription = gyroscopeEventStream().listen(
-        (GyroscopeEvent event) {
-          double screenOrientationAngle = atan2(sin(event.y), cos(event.x));
-
-          screenOrientation = screenOrientationAngle;
-        },
-      );
+      _screenOrientSubscription = motionSensors.screenOrientation.listen((ScreenOrientationEvent event) {
+        screenOrientation = radians(event.angle!);
+      });
     }
   }
 
