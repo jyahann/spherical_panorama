@@ -165,6 +165,8 @@ class _PanoramaState extends State<Panorama>
   Stream<Null>? _stream;
   ImageStream? _imageStream;
 
+  bool fakeOrientData = false;
+
   void _handleTapUp(TapUpDetails details) {
     final Vector3 o =
         positionToLatLon(details.localPosition.dx, details.localPosition.dy);
@@ -303,14 +305,18 @@ class _PanoramaState extends State<Panorama>
     _orientationSubscription?.cancel();
     switch (widget.sensorControl) {
       case SensorControl.Orientation:
-        motionSensors.orientationUpdateInterval = Duration.microsecondsPerSecond ~/ 60;
-        _orientationSubscription = motionSensors.orientation.listen((OrientationEvent event) {
+        motionSensors.orientationUpdateInterval =
+            Duration.microsecondsPerSecond ~/ 60;
+        _orientationSubscription =
+            motionSensors.orientation.listen((OrientationEvent event) {
           orientation.setValues(event.yaw, event.pitch, event.roll);
         });
         break;
       case SensorControl.AbsoluteOrientation:
-        motionSensors.absoluteOrientationUpdateInterval = Duration.microsecondsPerSecond ~/ 60;
-        _orientationSubscription = motionSensors.absoluteOrientation.listen((AbsoluteOrientationEvent event) {
+        motionSensors.absoluteOrientationUpdateInterval =
+            Duration.microsecondsPerSecond ~/ 60;
+        _orientationSubscription = motionSensors.absoluteOrientation
+            .listen((AbsoluteOrientationEvent event) {
           orientation.setValues(event.yaw, event.pitch, event.roll);
         });
         break;
@@ -319,8 +325,14 @@ class _PanoramaState extends State<Panorama>
 
     _screenOrientSubscription?.cancel();
     if (widget.sensorControl != SensorControl.None) {
-      _screenOrientSubscription = motionSensors.screenOrientation.listen((ScreenOrientationEvent event) {
-        screenOrientation = radians(event.angle!);
+      _screenOrientSubscription = motionSensors.screenOrientation
+          .listen((ScreenOrientationEvent event) {
+        if (fakeOrientData) {
+          // idk how this works but it throws fake data on first launch
+          screenOrientation = radians(event.angle!);
+        } else {
+          fakeOrientData = true;
+        }
       });
     }
   }
